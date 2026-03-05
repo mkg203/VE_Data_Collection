@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Question {
+  id                 String         @id @default(uuid())
+  type               String         // "DISTANCE", "ANGLE", "SIZE", "STABILITY", "FIT"
+  text               String
+  imageUrl           String
+  unit               String?        // e.g., "cm", "degrees"
+  actualAnswerNum    Float?         // For distance, angle, size
+  actualAnswerBool   Boolean?       // For stability, fit
+  aiAnswerNum        Float?
+  aiAnswerBool       Boolean?
+  timesAsked         Int            @default(0)
+  
+  responses          UserResponse[]
+}
+
+model User {
+  id                 String         @id @default(uuid()) // Anonymous UUID from cookie
+  createdAt          DateTime       @default(now())
+  
+  responses          UserResponse[]
+}
+
+model UserResponse {
+  id                 String         @id @default(uuid())
+  userId             String
+  questionId         String
+  answerNum          Float?
+  answerBool         Boolean?
+  createdAt          DateTime       @default(now())
+
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question           Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId]) // A user can only answer a question once
+}

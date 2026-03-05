@@ -1,0 +1,85 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  const questions = [
+    {
+      type: 'DISTANCE',
+      text: 'Estimate the distance between the two red points in cm.',
+      imageUrl: '/file.svg', // using placeholder image for now
+      unit: 'cm',
+      actualAnswerNum: 15.5,
+      aiAnswerNum: 14.8,
+    },
+    {
+      type: 'ANGLE',
+      text: 'Estimate the angle between the two lines in degrees.',
+      imageUrl: '/window.svg',
+      unit: 'degrees',
+      actualAnswerNum: 45,
+      aiAnswerNum: 42,
+    },
+    {
+      type: 'SIZE',
+      text: 'Estimate the length of the blue square in inches.',
+      imageUrl: '/globe.svg',
+      unit: 'inches',
+      actualAnswerNum: 5,
+      aiAnswerNum: 5.2,
+    },
+    {
+      type: 'STABILITY',
+      text: 'Is this structure stable?',
+      imageUrl: '/next.svg',
+      actualAnswerBool: false,
+      aiAnswerBool: false,
+    },
+    {
+      type: 'FIT',
+      text: 'Will the smaller object fit inside the larger container?',
+      imageUrl: '/vercel.svg',
+      actualAnswerBool: true,
+      aiAnswerBool: true,
+    },
+    {
+      type: 'FIT',
+      text: '21Will the smaller object fit inside the larger container?',
+      imageUrl: '/vercel.svg',
+      actualAnswerBool: true,
+      aiAnswerBool: true,
+    },
+    {
+      type: 'FIT',
+      text: 'faWill the smaller object fit inside the larger container?',
+      imageUrl: '/vercel.svg',
+      actualAnswerBool: true,
+      aiAnswerBool: true,
+    },
+    {
+      type: 'DISTANCE',
+      text: 'Estimate the distance from the character to the tree in meters.',
+      imageUrl: '/file.svg',
+      unit: 'm',
+      actualAnswerNum: 2.3,
+      aiAnswerNum: 2.0,
+    }
+  ];
+
+  console.log('Seeding database...');
+  for (const q of questions) {
+    await prisma.question.create({
+      data: q,
+    });
+  }
+  console.log('Database seeded!');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
