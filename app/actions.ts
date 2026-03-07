@@ -1,14 +1,26 @@
 'use server'
 
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
 
-// In a real app we would want to instantiate Prisma in a global singleton 
+// In a real app we would want to instantiate Prisma in a global singleton
 // to avoid exhaustion in development. We'll do a simple setup here.
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
-const prisma = globalForPrisma.prisma || new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
+let prisma: PrismaClient;
+
+if (globalForPrisma.prisma) {
+  prisma = globalForPrisma.prisma;
+} else {
+  const connectionString = process.env.DATABASE_URL;
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+}
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 export async function getAnonUserId() {
   const cookieStore = await cookies();
   return cookieStore.get('anon_user_id')?.value;
