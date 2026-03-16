@@ -94,7 +94,7 @@ export default function Play() {
     let betterThanAiCount = 0;
     questions.forEach((q) => {
       const userAns = answers.find(a => a.questionId === q.id);
-      const isBool = q.type === 'STABILITY' || q.type === 'FIT';
+      const isBool = q.is_boolean;
       
       let betterThanAi = false;
       
@@ -125,7 +125,7 @@ export default function Play() {
           <div className="space-y-4">
             {questions.map((q) => {
               const userAns = answers.find(a => a.questionId === q.id);
-              const isBool = q.type === 'STABILITY' || q.type === 'FIT';
+              const isBool = q.is_boolean;
               
               let userStr = '';
               let actualStr = '';
@@ -192,7 +192,7 @@ export default function Play() {
   }
 
   const question = questions[currentIndex];
-  const isBool = question.type === 'STABILITY' || question.type === 'FIT';
+  const isBool = question.is_boolean;
 
   const handleBoolAnswer = (val: boolean) => {
     handleNext({ questionId: question.id, answerBool: val });

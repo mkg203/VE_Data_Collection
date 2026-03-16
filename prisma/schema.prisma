@@ -9,6 +9,7 @@ datasource db {
 model Question {
   id                 String         @id @default(uuid())
   type               String         // "DISTANCE", "ANGLE", "SIZE", "STABILITY", "FIT"
+  is_boolean         Boolean        @default(false)
   text               String
   imageUrl           String
   unit               String?        // e.g., "cm", "degrees"

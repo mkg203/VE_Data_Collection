@@ -37,6 +37,7 @@ async function main() {
     },
     {
       type: 'STABILITY',
+      is_boolean: true,
       text: 'Is this structure stable?',
       imageUrl: '/next.svg',
       actualAnswerBool: false,
@@ -44,6 +45,7 @@ async function main() {
     },
     {
       type: 'FIT',
+      is_boolean: true,
       text: 'Will the smaller object fit inside the larger container?',
       imageUrl: '/vercel.svg',
       actualAnswerBool: true,
@@ -51,6 +53,7 @@ async function main() {
     },
     {
       type: 'FIT',
+      is_boolean: true,
       text: '21Will the smaller object fit inside the larger container?',
       imageUrl: '/vercel.svg',
       actualAnswerBool: true,
@@ -58,6 +61,7 @@ async function main() {
     },
     {
       type: 'FIT',
+      is_boolean: true,
       text: 'faWill the smaller object fit inside the larger container?',
       imageUrl: '/vercel.svg',
       actualAnswerBool: true,
