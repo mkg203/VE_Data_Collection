@@ -2,7 +2,7 @@
 
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Question } from '@prisma/client'
 import { cookies } from 'next/headers'
 
 // In a real app we would want to instantiate Prisma in a global singleton
@@ -16,7 +16,7 @@ if (globalForPrisma.prisma) {
 } else {
   const connectionString = process.env.DATABASE_URL;
   const pool = new Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
+  const adapter = new PrismaPg(pool as any);
   prisma = new PrismaClient({ adapter });
 }
 
@@ -43,7 +43,7 @@ export async function getOrStartSession() {
 }
 
 const THRESHOLD = 10;
-const QUESTION_TYPES = ["DISTANCE", "ANGLE", "SIZE", "STABILITY", "FIT"];
+const QUESTION_TYPES = ["LIQUID_VOLUME", "ANGLE", "WEIGHT", "STABILITY", "FIT"];
 
 export async function fetchNextQuestions() {
   const user = await getOrStartSession();

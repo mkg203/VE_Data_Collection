@@ -254,7 +254,7 @@ export default function Play() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-lg mt-4 mb-8">
+      <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl mt-4 mb-8">
         <div className="flex justify-between text-sm font-medium text-gray-500 mb-2">
           <span>Question {currentIndex + 1} of {questions.length}</span>
         </div>
@@ -286,15 +286,17 @@ export default function Play() {
             }
           }}
           whileDrag={{ cursor: 'grabbing' }}
-          className="w-full max-w-lg rounded-3xl shadow-lg overflow-hidden flex flex-col min-h-[500px]"
+          className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl rounded-3xl shadow-lg overflow-hidden flex flex-col min-h-[500px]"
         >
-          <div className="relative w-full h-64 bg-gray-50 flex items-center justify-center p-4 border-b border-gray-100">
+          <div className="relative w-full h-[40vh] md:h-[50vh] min-h-[250px] max-h-[600px] bg-gray-50 flex items-center justify-center p-4 border-b border-gray-100">
             <Image 
               src={question.imageUrl} 
               alt="Visual estimation" 
               fill 
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 1000px"
               className="object-contain p-4"
               priority
+              unoptimized
             />
           </div>
 
