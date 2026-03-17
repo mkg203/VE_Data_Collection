@@ -93,3 +93,34 @@ export async function submitAnswers(answers: { questionId: string, answerNum?: n
 
   return { success: true };
 }
+
+export async function verifyCaptchaAndStartSession(token: string) {
+  // Use dummy secret for testing if env is not provided
+  const secret = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA';
+  
+  const formData = new FormData();
+  formData.append('secret', secret);
+  formData.append('response', token);
+
+  const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const outcome = await result.json();
+
+  if (outcome.success) {
+    const cookieStore = await cookies();
+    cookieStore.set('anon_user_id', crypto.randomUUID(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+    });
+
+    return { success: true };
+  } else {
+    throw new Error('CAPTCHA verification failed.');
+  }
+}
