@@ -170,13 +170,15 @@ export async function verifyCaptchaAndStartSession(token: string) {
 
   if (outcome.success) {
     const cookieStore = await cookies();
-    cookieStore.set('anon_user_id', crypto.randomUUID(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-    });
+    if (!cookieStore.has('anon_user_id')) {
+      cookieStore.set('anon_user_id', crypto.randomUUID(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      });
+    }
 
     return { success: true };
   } else {
