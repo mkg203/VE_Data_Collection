@@ -6,13 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:data": "bun scripts/import_data.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1010.0",
     "@marsidev/react-turnstile": "^1.4.2",
     "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.4.2",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.3.1",
     "framer-motion": "^12.35.0",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
