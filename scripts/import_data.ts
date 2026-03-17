@@ -44,7 +44,7 @@ async function main() {
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const records = parse(csvContent, { columns: true, skip_empty_lines: true });
 
-  for (const record of records) {
+  for (const record of (records as any[])) {
     const { filename, type, custom_prompt, shorthand_notes } = record;
 
     if (!filename || !type) {
