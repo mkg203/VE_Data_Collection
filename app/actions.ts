@@ -66,7 +66,7 @@ export async function fetchNextQuestions() {
   return nextQuestions;
 }
 
-export async function submitAnswers(answers: { questionId: string, answerNum?: number | null, answerBool?: boolean | null }[]) {
+export async function submitAnswers(answers: { questionId: string, answerNumMin?: number | null, answerNumMax?: number | null, answerBool?: boolean | null }[]) {
   const user = await getOrStartSession();
   
   for (const answer of answers) {
@@ -75,7 +75,8 @@ export async function submitAnswers(answers: { questionId: string, answerNum?: n
         data: {
           userId: user.id,
           questionId: answer.questionId,
-          answerNum: answer.answerNum,
+          answerNumMin: answer.answerNumMin,
+          answerNumMax: answer.answerNumMax,
           answerBool: answer.answerBool
         }
       });

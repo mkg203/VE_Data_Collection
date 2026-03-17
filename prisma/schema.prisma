@@ -15,7 +15,8 @@ model Question {
   unit               String?        // e.g., "cm", "degrees"
   actualAnswerNum    Float?         // For distance, angle, size
   actualAnswerBool   Boolean?       // For stability, fit
-  aiAnswerNum        Float?
+  aiAnswerMin        Float?
+  aiAnswerMax        Float?
   aiAnswerBool       Boolean?
   timesAsked         Int            @default(0)
   
@@ -33,7 +34,8 @@ model UserResponse {
   id                 String         @id @default(uuid())
   userId             String
   questionId         String
-  answerNum          Float?
+  answerNumMin       Float?
+  answerNumMax       Float?
   answerBool         Boolean?
   createdAt          DateTime       @default(now())
 

@@ -17,7 +17,8 @@ async function main() {
       imageUrl: '/file.svg', // using placeholder image for now
       unit: 'cm',
       actualAnswerNum: 15.5,
-      aiAnswerNum: 14.8,
+      aiAnswerMin: 14.8,
+      aiAnswerMax: 14.8,
     },
     {
       type: 'ANGLE',
@@ -25,7 +26,8 @@ async function main() {
       imageUrl: '/window.svg',
       unit: 'degrees',
       actualAnswerNum: 45,
-      aiAnswerNum: 42,
+      aiAnswerMin: 42,
+      aiAnswerMax: 42,
     },
     {
       type: 'SIZE',
@@ -33,7 +35,8 @@ async function main() {
       imageUrl: '/globe.svg',
       unit: 'inches',
       actualAnswerNum: 5,
-      aiAnswerNum: 5.2,
+      aiAnswerMin: 5.2,
+      aiAnswerMax: 5.2,
     },
     {
       type: 'STABILITY',
@@ -73,7 +76,8 @@ async function main() {
       imageUrl: '/file.svg',
       unit: 'm',
       actualAnswerNum: 2.3,
-      aiAnswerNum: 2.0,
+      aiAnswerMin: 2.0,
+      aiAnswerMax: 2.0,
     }
   ];
 
