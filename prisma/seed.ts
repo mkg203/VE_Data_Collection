@@ -12,15 +12,30 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const questions = [
     {
+      imageId: 'img_1',
+      variantTag: 'normal',
       type: 'DISTANCE',
       text: 'Estimate the distance between the two red points in cm.',
-      imageUrl: '/file.svg', // using placeholder image for now
+      imageUrl: '/file.svg',
       unit: 'cm',
       actualAnswerNum: 15.5,
       aiAnswerMin: 14.8,
       aiAnswerMax: 14.8,
     },
     {
+      imageId: 'img_1',
+      variantTag: 'blurred',
+      type: 'DISTANCE',
+      text: 'Estimate the distance between the two red points in cm (blurred).',
+      imageUrl: '/file.svg',
+      unit: 'cm',
+      actualAnswerNum: 15.5,
+      aiAnswerMin: 14.8,
+      aiAnswerMax: 14.8,
+    },
+    {
+      imageId: 'img_2',
+      variantTag: 'normal',
       type: 'ANGLE',
       text: 'Estimate the angle between the two lines in degrees.',
       imageUrl: '/window.svg',
@@ -30,6 +45,8 @@ async function main() {
       aiAnswerMax: 42,
     },
     {
+      imageId: 'img_3',
+      variantTag: 'normal',
       type: 'SIZE',
       text: 'Estimate the length of the blue square in inches.',
       imageUrl: '/globe.svg',
@@ -39,6 +56,8 @@ async function main() {
       aiAnswerMax: 5.2,
     },
     {
+      imageId: 'img_4',
+      variantTag: 'normal',
       type: 'STABILITY',
       is_boolean: true,
       text: 'Is this structure stable?',
@@ -47,6 +66,8 @@ async function main() {
       aiAnswerBool: false,
     },
     {
+      imageId: 'img_5',
+      variantTag: 'normal',
       type: 'FIT',
       is_boolean: true,
       text: 'Will the smaller object fit inside the larger container?',
@@ -55,6 +76,8 @@ async function main() {
       aiAnswerBool: true,
     },
     {
+      imageId: 'img_6',
+      variantTag: 'normal',
       type: 'FIT',
       is_boolean: true,
       text: '21Will the smaller object fit inside the larger container?',
@@ -63,6 +86,8 @@ async function main() {
       aiAnswerBool: true,
     },
     {
+      imageId: 'img_7',
+      variantTag: 'normal',
       type: 'FIT',
       is_boolean: true,
       text: 'faWill the smaller object fit inside the larger container?',
@@ -71,6 +96,8 @@ async function main() {
       aiAnswerBool: true,
     },
     {
+      imageId: 'img_8',
+      variantTag: 'normal',
       type: 'DISTANCE',
       text: 'Estimate the distance from the character to the tree in meters.',
       imageUrl: '/file.svg',

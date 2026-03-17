@@ -42,28 +42,86 @@ export async function getOrStartSession() {
   return user;
 }
 
+const THRESHOLD = 10;
+const QUESTION_TYPES = ["DISTANCE", "ANGLE", "SIZE", "STABILITY", "FIT"];
+
 export async function fetchNextQuestions() {
   const user = await getOrStartSession();
   
-  // Find questions the user has already answered
-  const answered = await prisma.userResponse.findMany({
+  // Find imageIds the user has already answered (by checking any variant of that image)
+  const answeredResponses = await prisma.userResponse.findMany({
     where: { userId: user.id },
-    select: { questionId: true }
-  });
-  const answeredIds = answered.map(r => r.questionId);
-
-  // Fetch 5 questions not answered, sorted by timesAsked ascending
-  const nextQuestions = await prisma.question.findMany({
-    where: {
-      id: { notIn: answeredIds }
-    },
-    orderBy: {
-      timesAsked: 'asc'
-    },
-    take: 5
+    select: {
+      question: {
+        select: { imageId: true }
+      }
+    }
   });
 
-  return nextQuestions;
+  const answeredImageIds = Array.from(new Set(answeredResponses.map(r => r.question.imageId)));
+
+  const selectedQuestions: Question[] = [];
+
+  for (const type of QUESTION_TYPES) {
+    // Fetch all questions of this type that the user hasn't seen any variant of
+    const availableQuestions = await prisma.question.findMany({
+      where: {
+        type: type,
+        imageId: { notIn: answeredImageIds }
+      }
+    });
+
+    if (availableQuestions.length === 0) continue;
+
+    // Group by imageId to ensure we pick one variant from one image
+    const groupedByImage: Record<string, Question[]> = {};
+    for (const q of availableQuestions) {
+      if (!groupedByImage[q.imageId]) groupedByImage[q.imageId] = [];
+      groupedByImage[q.imageId].push(q);
+    }
+
+    const imageIds = Object.keys(groupedByImage);
+
+    // Priority 1: Images that have at least one variant in progress (0 < timesAsked < THRESHOLD)
+    const inProgressImages = imageIds.filter(id => 
+      groupedByImage[id].some(q => q.timesAsked > 0 && q.timesAsked < THRESHOLD)
+    );
+
+    let targetImageId: string | null = null;
+    let targetQuestion: Question | null = null;
+
+    if (inProgressImages.length > 0) {
+      targetImageId = inProgressImages[Math.floor(Math.random() * inProgressImages.length)];
+      const inProgressVariants = groupedByImage[targetImageId].filter(q => q.timesAsked > 0 && q.timesAsked < THRESHOLD);
+      targetQuestion = inProgressVariants[Math.floor(Math.random() * inProgressVariants.length)];
+    }
+    // Priority 2: Images that have at least one variant with 0 responses
+    else {
+      const emptyImages = imageIds.filter(id =>
+        groupedByImage[id].some(q => q.timesAsked === 0)
+      );
+
+      if (emptyImages.length > 0) {
+        targetImageId = emptyImages[Math.floor(Math.random() * emptyImages.length)];
+        const emptyVariants = groupedByImage[targetImageId].filter(q => q.timesAsked === 0);
+        targetQuestion = emptyVariants[Math.floor(Math.random() * emptyVariants.length)];
+      }
+      // Priority 3: All variants reached threshold
+      else {
+        targetImageId = imageIds[Math.floor(Math.random() * imageIds.length)];
+        targetQuestion = groupedByImage[targetImageId][Math.floor(Math.random() * groupedByImage[targetImageId].length)];
+      }
+    }
+
+    if (targetQuestion) {
+      selectedQuestions.push(targetQuestion);
+      // Add the selected imageId to answeredImageIds so we don't pick it for another type in the same session
+      // (though each type usually has different images, it's safer)
+      answeredImageIds.push(targetQuestion.imageId);
+    }
+  }
+
+  return selectedQuestions;
 }
 
 export async function submitAnswers(answers: { questionId: string, answerNumMin?: number | null, answerNumMax?: number | null, answerBool?: boolean | null }[]) {

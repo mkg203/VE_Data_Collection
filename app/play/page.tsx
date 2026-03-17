@@ -84,8 +84,8 @@ export default function Play() {
   if (questions.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
-        <h2 className="text-2xl font-bold mb-4">You're amazing!</h2>
-        <p className="text-gray-600 mb-8">You've answered all available questions.</p>
+        <h2 className="text-2xl font-bold mb-4">You&apos;re amazing!</h2>
+        <p className="text-gray-600 mb-8">You&apos;ve answered all available questions.</p>
         <button onClick={() => router.push('/')} className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors">
           Go Home
         </button>

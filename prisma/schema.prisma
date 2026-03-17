@@ -8,6 +8,8 @@ datasource db {
 
 model Question {
   id                 String         @id @default(uuid())
+  imageId            String         @default("") // Manual ID linking variants of the same image
+  variantTag         String         @default("") // Short string for human review (e.g., "normal", "blurred")
   type               String         // "DISTANCE", "ANGLE", "SIZE", "STABILITY", "FIT"
   is_boolean         Boolean        @default(false)
   text               String
