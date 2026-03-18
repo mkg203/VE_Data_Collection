@@ -154,8 +154,10 @@ export async function submitAnswers(answers: { questionId: string, answerNumMin?
 }
 
 export async function verifyCaptchaAndStartSession(token: string) {
-  // Use dummy secret for testing if env is not provided
-  const secret = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA';
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) {
+    throw new Error('TURNSTILE_SECRET_KEY environment variable is not defined.');
+  }
   
   const formData = new FormData();
   formData.append('secret', secret);
