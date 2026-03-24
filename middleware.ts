@@ -5,10 +5,10 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // 1. Route Protection
-  const hasAnonCookie = request.cookies.has('anon_user_id');
+  const hasPassedCaptcha = request.cookies.has('captcha_passed');
 
-  // If trying to play without a session cookie, send back to home to complete CAPTCHA
-  if (path.startsWith('/play') && !hasAnonCookie) {
+  // If trying to play without verifying CAPTCHA this session, send back to home
+  if (path.startsWith('/play') && !hasPassedCaptcha) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 

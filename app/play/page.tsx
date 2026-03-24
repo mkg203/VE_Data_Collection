@@ -220,14 +220,13 @@ export default function Play() {
           </div>
 
           <div className="pt-8 flex justify-center">
-            <button 
-              onClick={loadQuestions}
+            <button
+              onClick={() => router.push('/')}
               className="bg-black text-white font-semibold text-lg px-8 py-4 rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2"
             >
               Play Again <ChevronRight className="w-5 h-5" />
             </button>
-          </div>
-        </div>
+          </div>        </div>
       </div>
     );
   }

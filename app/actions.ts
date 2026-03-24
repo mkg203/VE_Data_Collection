@@ -125,6 +125,13 @@ export async function fetchNextQuestions() {
 }
 
 export async function submitAnswers(answers: { questionId: string, answerNumMin?: number | null, answerNumMax?: number | null, answerBool?: boolean | null }[]) {
+  const cookieStore = await cookies();
+  const hasPassedCaptcha = cookieStore.has('captcha_passed');
+
+  if (!hasPassedCaptcha) {
+    throw new Error('CAPTCHA verification required for submission.');
+  }
+
   const user = await getOrStartSession();
   
   for (const answer of answers) {
@@ -149,6 +156,9 @@ export async function submitAnswers(answers: { questionId: string, answerNumMin?
       // Ignores unique constraint violations if the user somehow submits twice
     }
   }
+
+  // "Consume" the CAPTCHA by deleting the session cookie
+  cookieStore.delete('captcha_passed');
 
   return { success: true };
 }
@@ -181,6 +191,13 @@ export async function verifyCaptchaAndStartSession(token: string) {
         maxAge: 60 * 60 * 24 * 365, // 1 year
       });
     }
+
+    cookieStore.set('captcha_passed', 'true', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
 
     return { success: true };
   } else {
