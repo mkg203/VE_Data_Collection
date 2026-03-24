@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'vetest-data-collection.s3.ap-south-1.amazonaws.com',
+        hostname: 'storage.googleapis.com',
         port: '',
         pathname: '/**',
       },

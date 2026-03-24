@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Storage } from '@google-cloud/storage';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -14,15 +14,19 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool as any);
 const prisma = new PrismaClient({ adapter });
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+const storageOptions: any = {};
+if (process.env.GCP_PROJECT_ID) {
+  storageOptions.projectId = process.env.GCP_PROJECT_ID;
+}
+if (process.env.GCP_CLIENT_EMAIL && process.env.GCP_PRIVATE_KEY) {
+  storageOptions.credentials = {
+    client_email: process.env.GCP_CLIENT_EMAIL,
+    private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  };
+}
+const storageClient = new Storage(storageOptions);
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'vetest-data-collection';
+const BUCKET_NAME = process.env.GCP_BUCKET_NAME || 'vetest-data-collection';
 
 async function main() {
   console.log("starting data import");
@@ -117,8 +121,10 @@ async function main() {
     let imageUrl = '';
     const localImagePath = path.join('uploadthing/images', filename); // Assuming images are inside 'images' folder
     
-    // We only upload if AWS creds are provided (rudimentary check)
-    const canUpload = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+    // We will attempt to upload if a GCP Bucket is configured.
+    // The Storage SDK will automatically look for Application Default Credentials
+    // which can be set up via `gcloud auth application-default login`.
+    const canUpload = !!process.env.GCP_BUCKET_NAME;
 
     if (fs.existsSync(localImagePath) && canUpload) {
       try {
@@ -127,24 +133,23 @@ async function main() {
         const contentType = ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream');
         
         const key = `uploads/${Date.now()}-${filename}`;
-        await s3Client.send(new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: key,
-          Body: fileContent,
-          ContentType: contentType,
-        }));
+        const bucket = storageClient.bucket(BUCKET_NAME);
+        const file = bucket.file(key);
+        await file.save(fileContent, {
+          contentType: contentType,
+        });
         
-        imageUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
-        console.log(`Uploaded ${filename} to S3`);
+        imageUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${key}`;
+        console.log(`Uploaded ${filename} to GCP Storage`);
       } catch (err) {
-        console.error(`Failed to upload ${filename} to S3:`, err);
+        console.error(`Failed to upload ${filename} to GCP Storage:`, err);
         imageUrl = `/placeholder/${filename}`; // Fallback
       }
     } else {
       if (!fs.existsSync(localImagePath)) {
         console.warn(`Image file ${localImagePath} not found locally.`);
       } else if (!canUpload) {
-        console.warn(`AWS credentials missing. Skipping S3 upload for ${filename}.`);
+        console.warn(`GCP credentials missing. Skipping GCP upload for ${filename}.`);
       }
       imageUrl = `/placeholder/${filename}`; // Fallback
     }
