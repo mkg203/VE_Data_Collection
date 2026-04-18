@@ -19,15 +19,15 @@ export default function Play() {
   const [answers, setAnswers] = useState<AnswerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
-  const [selectedAiModel, setSelectedAiModel] = useState<'openai' | 'gemini' | 'claude'>('openai');
+  const [selectedAiModel, setSelectedAiModel] = useState<'openai' | 'gemini'>('openai');
   const router = useRouter();
 
   const [numInput, setNumInput] = useState('');
 
-  const modelFullNames = {
-    openai: 'OpenAI GPT-4o',
-    gemini: 'Google Gemini 1.5 Pro',
-    claude: 'Anthropic Claude 3.5 Sonnet'
+  const modelFullNames: { [key: string]: string } = {
+    openai: 'OpenAI GPT-5.4',
+    gemini: 'Google Gemini 3.1 Pro',
+    claude: 'Anthropic Claude Opus 4.7'
   };
 
   const x = useMotionValue(0);
@@ -100,7 +100,7 @@ export default function Play() {
     let betterThanAiCount = 0;
     questions.forEach((q) => {
       const userAns = answers.find(a => a.questionId === q.id);
-      const isBool = q.type === 'STABILITY' || q.type === 'FIT';
+      const isBool = q.is_boolean;
       const aiRes = q.aiResponses.find(r => r.model === selectedAiModel);
       
       let betterThanAi = false;
@@ -128,7 +128,7 @@ export default function Play() {
             
             <div className="mt-6 flex flex-col items-center gap-2">
               <div className="flex justify-center gap-2">
-                {(['openai', 'gemini', 'claude'] as const).map(model => (
+                {(['openai', 'gemini'] as const).map(model => (
                   <button
                     key={model}
                     onClick={() => setSelectedAiModel(model)}
@@ -155,7 +155,7 @@ export default function Play() {
           <div className="space-y-4">
             {questions.map((q) => {
               const userAns = answers.find(a => a.questionId === q.id);
-              const isBool = q.type === 'STABILITY' || q.type === 'FIT';
+              const isBool = q.is_boolean;
               const aiRes = q.aiResponses.find(r => r.model === selectedAiModel);
               
               let userStr = '';
@@ -250,7 +250,7 @@ export default function Play() {
   }
 
   const question = questions[currentIndex];
-  const isBool = question.type === 'STABILITY' || question.type === 'FIT';
+  const isBool = question.is_boolean;
 
   const handleBoolAnswer = (val: boolean) => {
     handleNext({ questionId: question.id, answerBool: val });

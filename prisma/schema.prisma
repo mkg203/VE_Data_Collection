@@ -21,6 +21,8 @@ model Question {
 
   responses          UserResponse[]
   aiResponses        AiResponse[]
+
+  @@unique([imageId, variantTag])
 }
 
 model AiResponse {
