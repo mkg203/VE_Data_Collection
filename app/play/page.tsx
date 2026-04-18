@@ -26,8 +26,8 @@ export default function Play() {
 
   const modelFullNames: { [key: string]: string } = {
     openai: 'OpenAI GPT-5.4',
-    gemini: 'Google Gemini 3.1 Pro',
-    claude: 'Anthropic Claude Opus 4.7'
+    gemini: 'Google Gemini 3.1 Pro Preview',
+    claude: 'Anthropic Claude Opus 4.6'
   };
 
   const x = useMotionValue(0);
