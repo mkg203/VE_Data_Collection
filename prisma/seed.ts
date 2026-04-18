@@ -19,8 +19,13 @@ async function main() {
       imageUrl: '/file.svg',
       unit: 'cm',
       actualAnswerNum: 15.5,
-      aiAnswerMin: 14.8,
-      aiAnswerMax: 14.8,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerNum: 14.8 },
+          { model: 'gemini', answerNum: 15.1 },
+          { model: 'claude', answerNum: 16.0 },
+        ]
+      }
     },
     {
       imageId: 'img_1',
@@ -30,8 +35,13 @@ async function main() {
       imageUrl: '/file.svg',
       unit: 'cm',
       actualAnswerNum: 15.5,
-      aiAnswerMin: 14.8,
-      aiAnswerMax: 14.8,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerNum: 14.8 },
+          { model: 'gemini', answerNum: 15.1 },
+          { model: 'claude', answerNum: 16.0 },
+        ]
+      }
     },
     {
       imageId: 'img_2',
@@ -41,8 +51,13 @@ async function main() {
       imageUrl: '/window.svg',
       unit: 'degrees',
       actualAnswerNum: 45,
-      aiAnswerMin: 42,
-      aiAnswerMax: 42,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerNum: 42 },
+          { model: 'gemini', answerNum: 46 },
+          { model: 'claude', answerNum: 44 },
+        ]
+      }
     },
     {
       imageId: 'img_3',
@@ -52,8 +67,13 @@ async function main() {
       imageUrl: '/globe.svg',
       unit: 'inches',
       actualAnswerNum: 5,
-      aiAnswerMin: 5.2,
-      aiAnswerMax: 5.2,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerNum: 5.2 },
+          { model: 'gemini', answerNum: 4.8 },
+          { model: 'claude', answerNum: 5.1 },
+        ]
+      }
     },
     {
       imageId: 'img_4',
@@ -63,7 +83,13 @@ async function main() {
       text: 'Is this structure stable?',
       imageUrl: '/next.svg',
       actualAnswerBool: false,
-      aiAnswerBool: false,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerBool: false },
+          { model: 'gemini', answerBool: true },
+          { model: 'claude', answerBool: false },
+        ]
+      }
     },
     {
       imageId: 'img_5',
@@ -73,7 +99,13 @@ async function main() {
       text: 'Will the smaller object fit inside the larger container?',
       imageUrl: '/vercel.svg',
       actualAnswerBool: true,
-      aiAnswerBool: true,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerBool: true },
+          { model: 'gemini', answerBool: false },
+          { model: 'claude', answerBool: true },
+        ]
+      }
     },
     {
       imageId: 'img_6',
@@ -83,7 +115,13 @@ async function main() {
       text: '21Will the smaller object fit inside the larger container?',
       imageUrl: '/vercel.svg',
       actualAnswerBool: true,
-      aiAnswerBool: true,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerBool: true },
+          { model: 'gemini', answerBool: false },
+          { model: 'claude', answerBool: true },
+        ]
+      }
     },
     {
       imageId: 'img_7',
@@ -93,7 +131,13 @@ async function main() {
       text: 'faWill the smaller object fit inside the larger container?',
       imageUrl: '/vercel.svg',
       actualAnswerBool: true,
-      aiAnswerBool: true,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerBool: true },
+          { model: 'gemini', answerBool: false },
+          { model: 'claude', answerBool: true },
+        ]
+      }
     },
     {
       imageId: 'img_8',
@@ -103,8 +147,13 @@ async function main() {
       imageUrl: '/file.svg',
       unit: 'm',
       actualAnswerNum: 2.3,
-      aiAnswerMin: 2.0,
-      aiAnswerMax: 2.0,
+      aiResponses: {
+        create: [
+          { model: 'openai', answerNum: 2.0 },
+          { model: 'gemini', answerNum: 2.5 },
+          { model: 'claude', answerNum: 2.2 },
+        ]
+      }
     }
   ];
 

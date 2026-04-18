@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchNextQuestions, submitAnswers } from '../actions';
-import { Question } from '@prisma/client';
+import { fetchNextQuestions, submitAnswers, QuestionWithAiResponses } from '../actions';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Check, X, ArrowRight, Activity, ChevronRight } from 'lucide-react';
@@ -10,21 +9,26 @@ import Image from 'next/image';
 
 type AnswerData = {
   questionId: string;
-  answerNumMin?: number | null;
-  answerNumMax?: number | null;
+  answerNum?: number | null;
   answerBool?: boolean | null;
 };
 
 export default function Play() {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<QuestionWithAiResponses[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [selectedAiModel, setSelectedAiModel] = useState<'openai' | 'gemini' | 'claude'>('openai');
   const router = useRouter();
 
-  const [minInput, setMinInput] = useState('');
-  const [maxInput, setMaxInput] = useState('');
+  const [numInput, setNumInput] = useState('');
+
+  const modelFullNames = {
+    openai: 'OpenAI GPT-4o',
+    gemini: 'Google Gemini 1.5 Pro',
+    claude: 'Anthropic Claude 3.5 Sonnet'
+  };
 
   const x = useMotionValue(0);
   const backgroundColor = useTransform(
@@ -60,8 +64,7 @@ export default function Play() {
   const handleNext = async (answer: AnswerData) => {
     const newAnswers = [...answers, answer];
     setAnswers(newAnswers);
-    setMinInput('');
-    setMaxInput('');
+    setNumInput('');
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -98,23 +101,19 @@ export default function Play() {
     questions.forEach((q) => {
       const userAns = answers.find(a => a.questionId === q.id);
       const isBool = q.type === 'STABILITY' || q.type === 'FIT';
+      const aiRes = q.aiResponses.find(r => r.model === selectedAiModel);
       
       let betterThanAi = false;
       
       if (isBool) {
         const isCorrect = userAns?.answerBool === q.actualAnswerBool;
-        betterThanAi = isCorrect && (q.aiAnswerBool !== q.actualAnswerBool);
+        const aiIsCorrect = aiRes?.answerBool === q.actualAnswerBool;
+        betterThanAi = (isCorrect ? 1 : 0) >= (aiIsCorrect ? 1 : 0);
       } else {
-        if (userAns?.answerNumMin != null && userAns?.answerNumMax != null && q.actualAnswerNum != null && q.aiAnswerMin != null && q.aiAnswerMax != null) {
-          const userMidpoint = (userAns.answerNumMin + userAns.answerNumMax) / 2;
-          const userRange = userAns.answerNumMax - userAns.answerNumMin;
-          const userScore = Math.abs(userMidpoint - q.actualAnswerNum) + (0.1 * userRange);
-          
-          const aiMidpoint = (q.aiAnswerMin + q.aiAnswerMax) / 2;
-          const aiRange = q.aiAnswerMax - q.aiAnswerMin;
-          const aiScore = Math.abs(aiMidpoint - q.actualAnswerNum) + (0.1 * aiRange);
-          
-          betterThanAi = userScore < aiScore;
+        if (userAns?.answerNum != null && q.actualAnswerNum != null && aiRes?.answerNum != null) {
+          const userScore = Math.abs(userAns.answerNum - q.actualAnswerNum);
+          const aiScore = Math.abs(aiRes.answerNum - q.actualAnswerNum);
+          betterThanAi = userScore <= aiScore;
         }
       }
       if (betterThanAi) betterThanAiCount++;
@@ -126,8 +125,30 @@ export default function Play() {
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Your Results</h2>
             <p className="text-gray-600 mt-2">How did you do compared to AI?</p>
-            <div className="mt-4 inline-block bg-blue-50 text-blue-800 px-4 py-2 rounded-lg font-medium">
-              You did better than AI at {betterThanAiCount}/{questions.length} questions.
+            
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <div className="flex justify-center gap-2">
+                {(['openai', 'gemini', 'claude'] as const).map(model => (
+                  <button
+                    key={model}
+                    onClick={() => setSelectedAiModel(model)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      selectedAiModel === model 
+                        ? 'bg-black text-white' 
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {model.charAt(0).toUpperCase() + model.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 font-medium mt-1">
+                Comparing against: <span className="text-gray-600">{modelFullNames[selectedAiModel]}</span>
+              </p>
+            </div>
+
+            <div className="mt-6 inline-block bg-blue-50 text-blue-800 px-4 py-2 rounded-lg font-medium">
+              You matched or beat {selectedAiModel.charAt(0).toUpperCase() + selectedAiModel.slice(1)} at {betterThanAiCount}/{questions.length} questions.
             </div>
           </div>
 
@@ -135,6 +156,7 @@ export default function Play() {
             {questions.map((q) => {
               const userAns = answers.find(a => a.questionId === q.id);
               const isBool = q.type === 'STABILITY' || q.type === 'FIT';
+              const aiRes = q.aiResponses.find(r => r.model === selectedAiModel);
               
               let userStr = '';
               let actualStr = '';
@@ -150,25 +172,21 @@ export default function Play() {
               if (isBool) {
                 userStr = userAns?.answerBool ? 'Yes' : 'No';
                 actualStr = q.actualAnswerBool ? 'Yes' : 'No';
-                aiStr = q.aiAnswerBool ? 'Yes' : 'No';
+                aiStr = aiRes?.answerBool ? 'Yes' : 'No';
                 isCorrect = userAns?.answerBool === q.actualAnswerBool;
-                aiIsCorrect = q.aiAnswerBool === q.actualAnswerBool;
+                aiIsCorrect = aiRes?.answerBool === q.actualAnswerBool;
                 
                 userWon = isCorrect && !aiIsCorrect;
                 aiWon = aiIsCorrect && !isCorrect;
                 betterThanAi = userWon;
               } else {
-                userStr = `${userAns?.answerNumMin} - ${userAns?.answerNumMax} ${q.unit}`;
+                userStr = `${userAns?.answerNum} ${q.unit}`;
                 actualStr = `${q.actualAnswerNum} ${q.unit}`;
-                aiStr = `${q.aiAnswerMin} - ${q.aiAnswerMax} ${q.unit}`;
-                if (userAns?.answerNumMin != null && userAns?.answerNumMax != null && q.actualAnswerNum != null && q.aiAnswerMin != null && q.aiAnswerMax != null) {
-                  const userMidpoint = (userAns.answerNumMin + userAns.answerNumMax) / 2;
-                  const userRange = userAns.answerNumMax - userAns.answerNumMin;
-                  const userScore = Math.abs(userMidpoint - q.actualAnswerNum) + (0.1 * userRange);
-
-                  const aiMidpoint = (q.aiAnswerMin + q.aiAnswerMax) / 2;
-                  const aiRange = q.aiAnswerMax - q.aiAnswerMin;
-                  const aiScore = Math.abs(aiMidpoint - q.actualAnswerNum) + (0.1 * aiRange);
+                aiStr = aiRes?.answerNum != null ? `${aiRes.answerNum} ${q.unit}` : 'N/A';
+                
+                if (userAns?.answerNum != null && q.actualAnswerNum != null && aiRes?.answerNum != null) {
+                  const userScore = Math.abs(userAns.answerNum - q.actualAnswerNum);
+                  const aiScore = Math.abs(aiRes.answerNum - q.actualAnswerNum);
 
                   userErrorStr = `Err: ${userScore.toFixed(2)}`;
                   aiErrorStr = `Err: ${aiScore.toFixed(2)}`;
@@ -176,19 +194,19 @@ export default function Play() {
                   betterThanAi = userScore < aiScore;
                   userWon = userScore < aiScore;
                   aiWon = aiScore < userScore;
-                  isCorrect = q.actualAnswerNum >= userAns.answerNumMin && q.actualAnswerNum <= userAns.answerNumMax;
-                  aiIsCorrect = q.actualAnswerNum >= q.aiAnswerMin && q.actualAnswerNum <= q.aiAnswerMax;
+                  isCorrect = userScore === 0;
+                  aiIsCorrect = aiScore === 0;
                 }
               }
 
               let userColorClass = 'bg-gray-50 text-gray-900';
               if (userWon) userColorClass = 'bg-green-100 text-green-900 border border-green-200';
-              else if (aiWon || !isCorrect) userColorClass = 'bg-red-50 text-red-900 border border-red-100';
+              else if (aiWon || (!isCorrect && isBool)) userColorClass = 'bg-red-50 text-red-900 border border-red-100';
               else if (isCorrect) userColorClass = 'bg-green-50 text-green-900';
               
               let aiColorClass = 'bg-gray-50 text-gray-900';
               if (aiWon) aiColorClass = 'bg-green-100 text-green-900 border border-green-200';
-              else if (userWon || !aiIsCorrect) aiColorClass = 'bg-red-50 text-red-900 border border-red-100';
+              else if (userWon || (!aiIsCorrect && isBool)) aiColorClass = 'bg-red-50 text-red-900 border border-red-100';
               else if (aiIsCorrect) aiColorClass = 'bg-green-50 text-green-900';
 
               return (
@@ -204,9 +222,9 @@ export default function Play() {
                         <span className="font-semibold text-[10px] md:text-sm">{userStr}</span>
                         {userErrorStr && <span className="text-[10px] opacity-80 mt-1">{userErrorStr}</span>}
                       </div>
-                      <div className="bg-gray-50 p-2 rounded flex flex-col justify-center">
-                        <span className="block text-xs text-gray-500 uppercase">Actual</span>
-                        <span className="font-semibold">{actualStr}</span>
+                      <div className="bg-gray-100 border border-gray-200 p-2 rounded flex flex-col justify-center shadow-inner">
+                        <span className="block text-xs text-gray-500 uppercase font-medium">Actual</span>
+                        <span className="font-bold text-gray-900 text-[10px] md:text-sm">{actualStr}</span>
                       </div>
                       <div className={`p-2 rounded flex flex-col justify-center ${aiColorClass}`}>
                         <span className="block text-xs uppercase opacity-70">AI</span>
@@ -240,13 +258,11 @@ export default function Play() {
 
   const handleNumAnswer = (e: React.FormEvent) => {
     e.preventDefault();
-    const min = parseFloat(minInput);
-    const max = parseFloat(maxInput);
-    if (!isNaN(min) && !isNaN(max)) {
+    const num = parseFloat(numInput);
+    if (!isNaN(num)) {
       handleNext({ 
         questionId: question.id, 
-        answerNumMin: Math.min(min, max), 
-        answerNumMax: Math.max(min, max) 
+        answerNum: num
       });
     }
   };
@@ -320,51 +336,34 @@ export default function Play() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleNumAnswer} className="mt-auto space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-400 uppercase ml-1">Min</label>
-                    <div className="relative flex items-center">
-                      <input
-                        type="number"
-                        step="any"
-                        required
-                        value={minInput}
-                        onChange={e => setMinInput(e.target.value)}
-                        className="w-full text-center text-2xl font-bold py-4 bg-gray-50 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
-                        placeholder="0"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-400 uppercase ml-1">Max</label>
-                    <div className="relative flex items-center">
-                      <input
-                        type="number"
-                        step="any"
-                        required
-                        value={maxInput}
-                        onChange={e => setMaxInput(e.target.value)}
-                        className="w-full text-center text-2xl font-bold py-4 bg-gray-50 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
-                        placeholder="0"
-                      />
-                    </div>
+              <form onSubmit={handleNumAnswer} className="mt-auto space-y-4 max-w-sm mx-auto w-full">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-400 uppercase ml-1">Your Estimate</label>
+                  <div className="relative flex items-center justify-center bg-gray-50 rounded-xl py-2 px-4 focus-within:ring-2 focus-within:ring-black">
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={numInput}
+                      onChange={e => setNumInput(e.target.value)}
+                      className="w-1/2 text-right text-2xl font-bold bg-transparent text-gray-900 focus:outline-none"
+                      placeholder="0"
+                      autoFocus
+                    />
+                    {question.unit && (
+                      <span className="ml-2 text-2xl font-bold text-gray-400">
+                        {question.unit}
+                      </span>
+                    )}
                   </div>
                 </div>
-                
-                {question.unit && (
-                  <p className="text-center text-gray-400 font-medium text-sm">
-                    Unit: {question.unit}
-                  </p>
-                )}
 
                 <button 
                   type="submit"
-                  disabled={!minInput || !maxInput}
-                  className="w-full bg-black text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 disabled:opacity-50 transition-all"
+                  disabled={!numInput}
+                  className="w-full bg-black text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 disabled:opacity-50 transition-all mt-6"
                 >
-                  Submit Range <ArrowRight className="w-5 h-5" />
+                  Submit <ArrowRight className="w-5 h-5" />
                 </button>
               </form>
             )}

@@ -2,7 +2,9 @@
 
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient, Question } from '@prisma/client'
+import { PrismaClient, Question, AiResponse } from '@prisma/client'
+
+export type QuestionWithAiResponses = Question & { aiResponses: AiResponse[] };
 import { cookies } from 'next/headers'
 
 // In a real app we would want to instantiate Prisma in a global singleton
@@ -60,7 +62,7 @@ export async function fetchNextQuestions() {
 
   const answeredImageIds = Array.from(new Set(answeredResponses.map(r => r.question.imageId)));
 
-  const selectedQuestions: Question[] = [];
+  const selectedQuestions: QuestionWithAiResponses[] = [];
 
   for (const type of QUESTION_TYPES) {
     // Fetch all questions of this type that the user hasn't seen any variant of
@@ -68,16 +70,19 @@ export async function fetchNextQuestions() {
       where: {
         type: type,
         imageId: { notIn: answeredImageIds }
+      },
+      include: {
+        aiResponses: true
       }
     });
 
     if (availableQuestions.length === 0) continue;
 
     // Group by imageId to ensure we pick one variant from one image
-    const groupedByImage: Record<string, Question[]> = {};
+    const groupedByImage: Record<string, QuestionWithAiResponses[]> = {};
     for (const q of availableQuestions) {
       if (!groupedByImage[q.imageId]) groupedByImage[q.imageId] = [];
-      groupedByImage[q.imageId].push(q);
+      groupedByImage[q.imageId].push(q as QuestionWithAiResponses);
     }
 
     const imageIds = Object.keys(groupedByImage);
@@ -88,7 +93,7 @@ export async function fetchNextQuestions() {
     );
 
     let targetImageId: string | null = null;
-    let targetQuestion: Question | null = null;
+    let targetQuestion: QuestionWithAiResponses | null = null;
 
     if (inProgressImages.length > 0) {
       targetImageId = inProgressImages[Math.floor(Math.random() * inProgressImages.length)];
@@ -124,7 +129,7 @@ export async function fetchNextQuestions() {
   return selectedQuestions;
 }
 
-export async function submitAnswers(answers: { questionId: string, answerNumMin?: number | null, answerNumMax?: number | null, answerBool?: boolean | null }[]) {
+export async function submitAnswers(answers: { questionId: string, answerNum?: number | null, answerBool?: boolean | null }[]) {
   const cookieStore = await cookies();
   const hasPassedCaptcha = cookieStore.has('captcha_passed');
 
@@ -140,8 +145,7 @@ export async function submitAnswers(answers: { questionId: string, answerNumMin?
         data: {
           userId: user.id,
           questionId: answer.questionId,
-          answerNumMin: answer.answerNumMin,
-          answerNumMax: answer.answerNumMax,
+          answerNum: answer.answerNum,
           answerBool: answer.answerBool
         }
       });

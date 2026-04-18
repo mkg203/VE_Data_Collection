@@ -84,9 +84,8 @@ async function main() {
     let actualAnswerNum: number | null = null;
     let actualAnswerBool: boolean | null = null;
     let unit: string | null = null;
-    let aiAnswerMin: number | null = null;
-    let aiAnswerMax: number | null = null;
-    let aiAnswerBool: boolean | null = null;
+
+    let aiResponsesData: { model: string, answerNum?: number, answerBool?: boolean }[] = [];
 
     if (isBoolean) {
       const lowerNotes = shorthand_notes?.trim().toLowerCase();
@@ -98,7 +97,11 @@ async function main() {
         console.warn(`Skipping ${filename}: shorthand_notes '${shorthand_notes}' is not Yes/No for boolean type ${dbType}.`);
         continue;
       }
-      aiAnswerBool = !actualAnswerBool; // placeholder
+      aiResponsesData = [
+        { model: 'openai', answerBool: !actualAnswerBool },
+        { model: 'gemini', answerBool: actualAnswerBool },
+        { model: 'claude', answerBool: !actualAnswerBool },
+      ];
     } else {
       // numeric type
       const match = shorthand_notes?.trim().match(/^([\d.]+)\s+(.+)$/);
@@ -109,8 +112,11 @@ async function main() {
           console.warn(`Skipping ${filename}: parsed NaN for ${shorthand_notes}`);
           continue;
         }
-        aiAnswerMin = actualAnswerNum - 20;
-        aiAnswerMax = actualAnswerNum + 20;
+        aiResponsesData = [
+          { model: 'openai', answerNum: actualAnswerNum * 0.9 },
+          { model: 'gemini', answerNum: actualAnswerNum * 1.1 },
+          { model: 'claude', answerNum: actualAnswerNum * 1.05 },
+        ];
       } else {
         console.warn(`Skipping ${filename}: numeric format not matched in '${shorthand_notes}'. Expected '<value> <unit>'.`);
         continue;
@@ -166,10 +172,10 @@ async function main() {
           unit,
           actualAnswerNum,
           actualAnswerBool,
-          aiAnswerMin,
-          aiAnswerMax,
-          aiAnswerBool,
           timesAsked: 0,
+          aiResponses: {
+            create: aiResponsesData
+          }
         }
       });
       console.log(`Successfully inserted DB record for ${filename}`);

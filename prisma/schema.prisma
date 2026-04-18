@@ -17,18 +17,28 @@ model Question {
   unit               String?        // e.g., "cm", "degrees"
   actualAnswerNum    Float?         // For distance, angle, size
   actualAnswerBool   Boolean?       // For stability, fit
-  aiAnswerMin        Float?
-  aiAnswerMax        Float?
-  aiAnswerBool       Boolean?
   timesAsked         Int            @default(0)
-  
+
   responses          UserResponse[]
+  aiResponses        AiResponse[]
+}
+
+model AiResponse {
+  id                 String         @id @default(uuid())
+  questionId         String
+  model              String         // "openai", "gemini", "claude"
+  answerNum          Float?
+  answerBool         Boolean?
+
+  question           Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, model])
 }
 
 model User {
   id                 String         @id @default(uuid()) // Anonymous UUID from cookie
   createdAt          DateTime       @default(now())
-  
+
   responses          UserResponse[]
 }
 
@@ -36,8 +46,7 @@ model UserResponse {
   id                 String         @id @default(uuid())
   userId             String
   questionId         String
-  answerNumMin       Float?
-  answerNumMax       Float?
+  answerNum          Float?
   answerBool         Boolean?
   createdAt          DateTime       @default(now())
 

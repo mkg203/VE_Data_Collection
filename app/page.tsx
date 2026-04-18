@@ -72,6 +72,12 @@ export default function Home() {
                   Start Challenge
                 </Link>
               </div>
+
+              <div className="pt-6 border-t border-gray-100 mt-6">
+                <p className="text-sm text-gray-500">
+                  A research project by the <a href="https://kestrel-lab.github.io/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Kestrel Lab</a>
+                </p>
+              </div>
             </>
           )}
         </div>
