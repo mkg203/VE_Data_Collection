@@ -19,7 +19,7 @@ export default function Play() {
   const [answers, setAnswers] = useState<AnswerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
-  const [selectedAiModel, setSelectedAiModel] = useState<'openai' | 'gemini'>('openai');
+  const [selectedAiModel, setSelectedAiModel] = useState<'openai' | 'gemini' | 'gemini-robotics'>('openai');
   const router = useRouter();
 
   const [numInput, setNumInput] = useState('');
@@ -27,6 +27,7 @@ export default function Play() {
   const modelFullNames: { [key: string]: string } = {
     openai: 'OpenAI GPT-5.4',
     gemini: 'Google Gemini 3.1 Pro Preview',
+    'gemini-robotics': 'Google Gemini Robotics ER 1.6 Preview',
     claude: 'Anthropic Claude Opus 4.6'
   };
 
@@ -128,7 +129,7 @@ export default function Play() {
             
             <div className="mt-6 flex flex-col items-center gap-2">
               <div className="flex justify-center gap-2">
-                {(['openai', 'gemini'] as const).map(model => (
+                 {(['openai', 'gemini', 'gemini-robotics'] as const).map(model => (
                   <button
                     key={model}
                     onClick={() => setSelectedAiModel(model)}
@@ -172,7 +173,7 @@ export default function Play() {
               if (isBool) {
                 userStr = userAns?.answerBool ? 'Yes' : 'No';
                 actualStr = q.actualAnswerBool ? 'Yes' : 'No';
-                aiStr = aiRes?.answerBool ? 'Yes' : 'No';
+                aiStr = aiRes?.answerBool != null ? (aiRes.answerBool ? 'Yes' : 'No') : 'N/A';
                 isCorrect = userAns?.answerBool === q.actualAnswerBool;
                 aiIsCorrect = aiRes?.answerBool === q.actualAnswerBool;
                 

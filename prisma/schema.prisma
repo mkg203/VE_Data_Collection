@@ -22,7 +22,7 @@ model Question {
   responses          UserResponse[]
   aiResponses        AiResponse[]
 
-  @@unique([imageId, variantTag])
+  @@unique([imageId, variantTag, type])
 }
 
 model AiResponse {
