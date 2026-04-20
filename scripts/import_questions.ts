@@ -34,7 +34,7 @@ async function main() {
   if (isDryRun) {
     console.log("=== DRY RUN MODE: No database changes will be made ===");
   }
-  console.log("starting data import");
+  console.log("starting questions import");
 
   let promptGroups: Record<string, string> = {};
   if (fs.existsSync('uploadthing/prompt_groups.json')) {
@@ -42,16 +42,6 @@ async function main() {
     console.log(`Loaded ${Object.keys(promptGroups).length} prompt groups.`);
   } else {
     console.warn("prompt_groups.json not found.");
-  }
-
-  let aiAnswersData: any[] = [];
-  const aiAnswersPath = 'uploadthing/ai_answers.csv';
-  if (fs.existsSync(aiAnswersPath)) {
-    console.log("Found ai_answers.csv, loading AI responses.");
-    const aiContent = fs.readFileSync(aiAnswersPath, 'utf-8');
-    aiAnswersData = parse(aiContent, { columns: true, skip_empty_lines: true });
-  } else {
-    console.warn("No ai_answers.csv found! Will use fallback mock AI data.");
   }
 
   const csvPaths = glob.sync('uploadthing/data_export-*.csv');
@@ -77,14 +67,27 @@ async function main() {
 
     const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
     const parts = nameWithoutExt.split('-');
-
+    
     if (parts.length < 3) {
       console.warn(`Skipping ${filename}: Invalid filename format.`);
       continue;
     }
 
-    const [randomThing, , imageIdPart, ...variantParts] = parts;
-    const imageId = `${randomThing}-${imageIdPart}`;
+    const alphabet = parts[0];
+    // This is the user-provided type, which might be different from the db type
+    const fileType = parts[1].toUpperCase(); 
+    
+    const remainingParts = parts.slice(2);
+    const imageIdPartIndex = remainingParts.findIndex((p: string) => p.startsWith('image'));
+
+    if (imageIdPartIndex === -1) {
+        console.warn(`Skipping ${filename}: Cannot find imageId part (e.g., 'image9').`);
+        continue;
+    }
+
+    const imageIdPart = remainingParts[imageIdPartIndex];
+    const imageId = `${alphabet}-${imageIdPart}`;
+    const variantParts = remainingParts.slice(imageIdPartIndex + 1);
     const variantTag = variantParts.length > 0 ? variantParts.join('-') : 'normal';
 
     const dbType = type.toUpperCase();
@@ -99,7 +102,6 @@ async function main() {
     let actualAnswerNum: number | null = null;
     let actualAnswerBool: boolean | null = null;
     let unit: string | null = null;
-    const aiRecord = aiAnswersData.find(a => a.filename === filename);
 
     if (isBoolean) {
       actualAnswerBool = lowerNotes === 'yes';
@@ -118,7 +120,6 @@ async function main() {
       }
     }
     
-    // This is the new, more precise way of identifying a question
     const existingQuestion = await prisma.question.findUnique({
       where: { imageId_variantTag_type: { imageId, variantTag, type: dbType } },
     });
@@ -134,16 +135,20 @@ async function main() {
         const contentType = ext === '.png' ? 'image/png' : 'image/jpeg';
         
         const key = `uploads/${Date.now()}-${filename}`;
-        await storageClient.bucket(BUCKET_NAME).file(key).save(fileContent, { contentType });
+        if (isDryRun) {
+          console.log(`[DRY RUN] Would upload ${filename} to GCP Storage at ${key}`);
+        } else {
+          await storageClient.bucket(BUCKET_NAME).file(key).save(fileContent, { contentType });
+          console.log(`Uploaded ${filename} to GCP Storage`);
+        }
         
         imageUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${key}`;
-        console.log(`Uploaded ${filename} to GCP Storage`);
       } catch (err) {
         console.error(`Failed to upload ${filename} to GCP Storage:`, err);
-        imageUrl = `/placeholder/${filename}`; // Fallback on upload failure
+        imageUrl = `/placeholder/${filename}`; 
       }
     } else if (needsUpload) {
-      imageUrl = `/placeholder/${filename}`; // Fallback if local file or bucket missing
+      imageUrl = `/placeholder/${filename}`; 
     }
     
     const questionData = {
@@ -158,53 +163,55 @@ async function main() {
       actualAnswerBool,
     };
 
-    const aiResponsesCreateData = (isBoolean
-      ? [
-          { model: 'openai', answerBool: aiRecord ? (aiRecord.openai_bool === 'True' || aiRecord.openai_bool === 'true') : !actualAnswerBool },
-          { model: 'gemini', answerBool: aiRecord ? (aiRecord.gemini_bool === 'True' || aiRecord.gemini_bool === 'true') : actualAnswerBool },
-        ]
-      : [
-          { model: 'openai', answerNum: aiRecord ? (parseFloat(aiRecord.openai_num) || actualAnswerNum) : (actualAnswerNum ?? 0) * 0.9 },
-          { model: 'gemini', answerNum: aiRecord ? (parseFloat(aiRecord.gemini_num) || actualAnswerNum) : (actualAnswerNum ?? 0) * 1.1 },
-        ]
-    ).filter((ar: any) => ar.answerBool !== undefined || ar.answerNum !== undefined);
+    if (existingQuestion) {
+      const isDifferent = 
+        existingQuestion.type !== questionData.type ||
+        existingQuestion.is_boolean !== questionData.is_boolean ||
+        existingQuestion.text !== questionData.text ||
+        existingQuestion.imageUrl !== questionData.imageUrl ||
+        existingQuestion.unit !== questionData.unit ||
+        existingQuestion.actualAnswerNum !== questionData.actualAnswerNum ||
+        existingQuestion.actualAnswerBool !== questionData.actualAnswerBool;
 
-    try {
-      if (isDryRun) {
-        if (existingQuestion) {
-          console.log(`[DRY RUN] Would update existing record for ${filename}`);
-        } else {
-          console.log(`[DRY RUN] Would create new record for ${filename}`);
+      if (isDifferent) {
+        try {
+          if (isDryRun) {
+            console.log(`[DRY RUN] Would update existing Question record for ${filename}`);
+            console.log(`[DRY RUN] New data:`, questionData);
+          } else {
+            await prisma.question.update({
+              where: { imageId_variantTag_type: { imageId, variantTag, type: dbType } },
+              data: questionData,
+            });
+            console.log(`Successfully updated existing Question record for ${filename}`);
+          }
+        } catch (err) {
+          console.error(`Failed to update record for ${filename}:`, err);
         }
-        console.log('[DRY RUN] Data:', {
-          ...questionData,
-          aiResponses: { create: aiResponsesCreateData },
-        });
       } else {
-        await prisma.question.upsert({
-          where: { imageId_variantTag_type: { imageId, variantTag, type: dbType } },
-          update: {
-            ...questionData,
-            aiResponses: {
-              deleteMany: {}, // Clear existing AI responses
-              create: aiResponsesCreateData,
-            },
-          },
-          create: {
-            ...questionData,
-            aiResponses: {
-              create: aiResponsesCreateData,
-            },
-          },
-        });
-        console.log(`Successfully upserted DB record for ${filename}`);
+        console.log(`Skipping update for ${filename}: No changes detected.`);
       }
-    } catch (err) {
-      console.error(`Failed to upsert record for ${filename}:`, err);
+    } else {
+      try {
+        if (isDryRun) {
+          console.log(`[DRY RUN] Would create new Question record for ${filename}`);
+          console.log(`[DRY RUN] New data:`, questionData);
+        } else {
+          await prisma.question.create({
+            data: questionData,
+          });
+          console.log(`Successfully created new Question record for ${filename}`);
+        }
+      } catch (err) {
+        console.error(`Failed to create record for ${filename}:`, err);
+      }
     }
   }
 
-  console.log("Import process completed.");
+  console.log("Questions import process completed.");
+  if (isDryRun) {
+    console.log("=== DRY RUN MODE: Completed without making database changes ===");
+  }
 }
 
 main()

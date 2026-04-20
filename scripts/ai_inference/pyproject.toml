@@ -1,0 +1,14 @@
+[project]
+name = "ai-inference"
+version = "0.1.0"
+description = "ai inference script for ve-data-collection"
+requires-python = ">=3.12"
+dependencies = [
+    "google-cloud-aiplatform>=1.148.1",
+    "google-cloud-storage>=3.10.1",
+    "google-genai>=1.73.1",
+    "openai>=2.32.0",
+    "pandas>=3.0.2",
+    "pillow>=12.2.0",
+    "python-dotenv>=1.2.2",
+]
