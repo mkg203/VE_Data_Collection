@@ -67,25 +67,42 @@ async function main() {
     allRecords = allRecords.concat(records);
   }
 
+  const baseRecords = new Map<string, any>();
   for (const record of allRecords) {
-    const { filename, type, custom_prompt, shorthand_notes } = record;
-
-    if (!filename || !type) {
-      console.warn("Skipping record due to missing filename or type.", record);
-      continue;
+    if (!record.filename || !record.type) continue;
+    const match = record.filename.match(/^([A-Z])-([a-zA-Z_]+)-(image\d+)(?:[-_](.+))?\.jpg$/);
+    if (match) {
+        const bn = `${match[1]}-${match[2]}-${match[3]}`;
+        baseRecords.set(bn, record);
     }
+  }
 
-    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
-    const parts = nameWithoutExt.split('-');
-
-    if (parts.length < 3) {
+  const allImages = glob.sync('uploadthing/images/*.jpg');
+  for (const imagePath of allImages) {
+    const filename = path.basename(imagePath);
+    const match = filename.match(/^([A-Z])-([a-zA-Z_]+)-(image\d+)(?:[-_](.+))?\.jpg$/);
+    
+    if (!match) {
       console.warn(`Skipping ${filename}: Invalid filename format.`);
       continue;
     }
 
-    const [randomThing, , imageIdPart, ...variantParts] = parts;
-    const imageId = `${randomThing}-${imageIdPart}`;
-    const variantTag = variantParts.length > 0 ? variantParts.join('-') : 'normal';
+    const alphabet = match[1];
+    const fileType = match[2].toUpperCase();
+    const imageIdPart = match[3];
+    const variantTag = match[4] || 'normal';
+    
+    const bn = `${alphabet}-${match[2]}-${imageIdPart}`;
+    const record = baseRecords.get(bn);
+
+    if (!record) {
+      console.warn(`Skipping ${filename}: No matching base record found in CSVs.`);
+      continue;
+    }
+
+    const { type, custom_prompt, shorthand_notes } = record;
+
+    const imageId = `${alphabet}-${imageIdPart}`;
 
     const dbType = type.toUpperCase();
     const lowerNotes = shorthand_notes?.trim().toLowerCase() || '';

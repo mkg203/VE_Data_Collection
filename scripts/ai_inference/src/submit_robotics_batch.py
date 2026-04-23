@@ -27,6 +27,14 @@ MODEL_NAME = "gemini-robotics-er-1.6-preview"
 MODEL_KEY = "gemini-robotics"
 
 
+def get_base_name(filename):
+    pattern = re.compile(r"^([A-Z])-([a-zA-Z_]+)-(image\d+)(?:[-_](.+))?\.jpg$")
+    m = pattern.match(filename)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    return filename
+
+
 def resize_and_encode_image(image_path, resize_val):
     try:
         with Image.open(image_path) as img:
@@ -54,34 +62,18 @@ def prepare_data(args):
         (pd.read_csv(f, on_bad_lines="warn") for f in all_files), ignore_index=True
     )
 
-    completed_tasks = set()
-    if args.missing and os.path.exists(args.answers_csv):
-        answers_df = pd.read_csv(args.answers_csv)
-        filename_to_prompts = (
-            df.groupby("filename")["custom_prompt"].apply(list).to_dict()
-        )
-
-        for _, row in answers_df.iterrows():
-            filename = row["filename"]
-            prompts = filename_to_prompts.get(filename, [])
-            for prompt in prompts:
-                num_col, bool_col = f"{MODEL_KEY}_num", f"{MODEL_KEY}_bool"
-                if (num_col in answers_df.columns and pd.notna(row.get(num_col))) or (
-                    bool_col in answers_df.columns and pd.notna(row.get(bool_col))
-                ):
-                    completed_tasks.add(f"{filename}|{prompt}")
-
-    all_questions = []
+    base_prompts = {}
     for _, row in df.iterrows():
-        filename, q_type, custom_prompt, shorthand_notes = (
-            row.get("filename"),
-            row.get("type"),
-            row.get("custom_prompt"),
-            row.get("shorthand_notes"),
-        )
+        filename = row.get("filename")
+        q_type = row.get("type")
+        custom_prompt = row.get("custom_prompt")
+        shorthand_notes = row.get("shorthand_notes")
+        
         if not all(isinstance(i, str) for i in [filename, q_type]):
             continue
-
+            
+        base_name = get_base_name(filename)
+        
         shorthand_val = (
             str(shorthand_notes).strip().lower() if pd.notna(shorthand_notes) else ""
         )
@@ -98,15 +90,54 @@ def prepare_data(args):
             instruction += " The final_answer should be a boolean (true or false)."
         elif unit:
             instruction += f" The final_answer should be a float. The unit is {unit}."
-        final_prompt = f"Image ID: {filename}\n{text}\n\n{instruction}"
-
-        all_questions.append(
-            {
-                "filename": filename,
+            
+        if base_name not in base_prompts:
+            base_prompts[base_name] = []
+            
+        prompt_exists = False
+        for p in base_prompts[base_name]:
+            if p["custom_prompt"] == custom_prompt:
+                prompt_exists = True
+                break
+                
+        if not prompt_exists:
+            base_prompts[base_name].append({
                 "custom_prompt": custom_prompt,
-                "prompt": final_prompt,
-            }
-        )
+                "text": text,
+                "instruction": instruction
+            })
+
+    completed_tasks = set()
+    if args.missing and os.path.exists(args.answers_csv):
+        answers_df = pd.read_csv(args.answers_csv)
+        for _, row in answers_df.iterrows():
+            filename = row["filename"]
+            base_name = get_base_name(filename)
+            prompts = base_prompts.get(base_name, [])
+            for p in prompts:
+                prompt = p["custom_prompt"]
+                num_col, bool_col = f"{MODEL_KEY}_num", f"{MODEL_KEY}_bool"
+                if (num_col in answers_df.columns and pd.notna(row.get(num_col))) or (
+                    bool_col in answers_df.columns and pd.notna(row.get(bool_col))
+                ):
+                    completed_tasks.add(f"{filename}|{prompt}")
+
+    all_questions = []
+    all_images = glob.glob(os.path.join(IMAGES_DIR, "*.jpg"))
+    for image_path in all_images:
+        filename = os.path.basename(image_path)
+        base_name = get_base_name(filename)
+        
+        prompts = base_prompts.get(base_name, [])
+        for p in prompts:
+            final_prompt = f"Image ID: {filename}\n{p['text']}\n\n{p['instruction']}"
+            all_questions.append(
+                {
+                    "filename": filename,
+                    "custom_prompt": p["custom_prompt"],
+                    "prompt": final_prompt,
+                }
+            )
 
     data_to_process = []
     image_cache = {}

@@ -60,29 +60,19 @@ async function main() {
       continue;
     }
 
-    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
-    const parts = nameWithoutExt.split('-');
+    const match = filename.match(/^([A-Z])-([a-zA-Z_]+)-(image\d+)(?:[-_](.+))?\.jpg$/);
     
-    if (parts.length < 3) {
+    if (!match) {
       console.warn(colorize(`Skipping ${filename}: Invalid filename format.`, 'yellow'));
       continue;
     }
 
-    const alphabet = parts[0];
-    const type = parts[1].toUpperCase();
-    
-    const remainingParts = parts.slice(2);
-    const imageIdPartIndex = remainingParts.findIndex((p: string) => p.startsWith('image'));
+    const alphabet = match[1];
+    const type = match[2].toUpperCase();
+    const imageIdPart = match[3];
+    const variantTag = match[4] || 'normal';
 
-    if (imageIdPartIndex === -1) {
-        console.warn(colorize(`Skipping ${filename}: Cannot find imageId part (e.g., 'image9').`, 'yellow'));
-        continue;
-    }
-
-    const imageIdPart = remainingParts[imageIdPartIndex];
     const imageId = `${alphabet}-${imageIdPart}`;
-    const variantParts = remainingParts.slice(imageIdPartIndex + 1);
-    const variantTag = variantParts.length > 0 ? variantParts.join('-') : 'normal';
 
     const existingQuestion = await prisma.question.findFirst({
       where: { 
