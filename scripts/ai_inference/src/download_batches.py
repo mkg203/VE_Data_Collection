@@ -183,11 +183,6 @@ def download_openai_outputs(batch_id, args):
     return results
 
 
-def cleanup(tracker):
-    # ... (cleanup function remains the same)
-    pass
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Download and process batch inference results."
@@ -203,9 +198,6 @@ def main():
         type=str,
         default=os.path.join(PROJECT_ROOT, "uploadthing", "ai_answers.csv"),
         help="Path to save the final CSV.",
-    )
-    parser.add_argument(
-        "--cleanup", action="store_true", help="Delete batch files from cloud storage."
     )
     parser.add_argument(
         "--save-raw-output", action="store_true", help="Save the full raw JSON output."
@@ -302,9 +294,6 @@ def main():
 
     final_df.to_csv(args.output_csv, index=False)
     print(f"Successfully saved all AI answers to {args.output_csv}")
-
-    if args.cleanup:
-        cleanup(tracker)
 
 
 if __name__ == "__main__":
