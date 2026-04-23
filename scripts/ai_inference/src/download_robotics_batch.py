@@ -5,15 +5,7 @@ import re
 
 import pandas as pd
 from dotenv import load_dotenv
-
-try:
-    from google import genai
-    
-except ImportError:
-    print(
-        "Error: The google-genai library is not installed. Please run `uv add google-genai`."
-    )
-    exit(1)
+from google import genai
 
 # Configuration
 PROJECT_ROOT = os.path.abspath(
